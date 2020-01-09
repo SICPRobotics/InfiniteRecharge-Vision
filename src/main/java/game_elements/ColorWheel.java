@@ -14,6 +14,10 @@ public class ColorWheel {
 
     public ColorWheel(Slice currentSlice) {
         this.currentSlice = currentSlice;
+
+        if (this.currentSlice != null) {
+            System.out.println("Current slice color: " + currentSlice.color);
+        }
     }
 
     private int distanceToWithoutWrapping(ColorWheelColor color) {

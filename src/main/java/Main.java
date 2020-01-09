@@ -18,14 +18,18 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import edu.wpi.cscore.CvSink;
+import edu.wpi.cscore.CvSource;
 import edu.wpi.cscore.MjpegServer;
 import edu.wpi.cscore.UsbCamera;
+import edu.wpi.cscore.VideoMode;
 import edu.wpi.cscore.VideoSource;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.networktables.EntryListenerFlags;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.vision.VisionPipeline;
 import edu.wpi.first.vision.VisionThread;
+import game_elements.ColorWheel;
 
 import org.opencv.core.Mat;
 
@@ -326,9 +330,24 @@ public final class Main {
 
     // start image processing on camera 0 if present
     if (cameras.size() >= 1) {
+      CvSink cameraSink = new CvSink("Camera Image Grabber");
+      cameraSink.setSource(cameras.get(0));
+
+      CvSource imageSource = new CvSource("CV Image Source", VideoMode.PixelFormat.kMJPEG, 640, 480, 30);
+      MjpegServer cvStream = new MjpegServer("CV Image Stream", 1186);
+      cvStream.setSource(imageSource);
+
+      Mat inputFrame = new Mat();
       VisionThread visionThread = new VisionThread(cameras.get(0),
         new ColorWheelPipeline(), pipeline -> {
+          ColorWheel colorWheel = ElementManager.colorWheelFromContours(pipeline.getBlueContours(), pipeline.getYellowContours(), pipeline.getRedContours(), pipeline.getGreenContours());
           
+          if (cameraSink.grabFrame(inputFrame) == 0) {
+            System.out.println("Error grabbing frame");
+            return;
+          }
+
+          imageSource.putFrame(ElementManager.drawColorWheelOn(inputFrame, colorWheel));
         }
       );
       /* something like this for GRIP:
